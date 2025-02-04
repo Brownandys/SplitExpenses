@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Reports</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            text-align: center;
+        }
+        .report-item {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .report-item span {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Financial Reports</h1>
+
+    <div class="container">
+        <div class="report-item">
+            Sum of All Deposits: <span id="totalDeposits">0.00</span>
+        </div>
+        <div class="report-item">
+            Sum of All Exits: <span id="totalExits">0.00</span>
+        </div>
+        <div class="report-item">
+            Sum of Deposits for the Current Month: <span id="monthlyDeposits">0.00</span>
+        </div>
+        <div class="report-item">
+            Sum of Exits for the Current Month: <span id="monthlyExits">0.00</span>
+        </div>
+        <div class="report-item">
+            Sum of All Reserved Future Expenses: <span id="totalReservedFutureExpenses">0.00</span>
+        </div>
+        <div class="report-item">
+            Sum of All Savings: <span id="totalSavings">0.00</span>
+        </div>
+        <div class="report-item">
+            Available Monthly: <span id="availableMonthly">0.00</span>
+        </div>
+    </div>
+
+    <script>
+        // Function to calculate financial reports
+        function calculateFinancialReports() {
+            // Retrieve data from localStorage
+            const deposits = JSON.parse(localStorage.getItem('deposits')) || [];
+            const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+            const savings = JSON.parse(localStorage.getItem('savings')) || [];
+            const futureExpenses = JSON.parse(localStorage.getItem('futureExpenses')) || [];
+
+            // Get the current month and year
+            const currentDate = new Date();
+            const currentMonth = currentDate.getMonth() + 1; // Months are 0-indexed
+            const currentYear = currentDate.getFullYear();
+
+            // Calculate sums with validation
+            const totalDeposits = deposits.reduce((sum, deposit) => {
+                const amount = parseFloat(deposit.amount);
+                return sum + (isNaN(amount) ? 0 : amount);
+            }, 0);
+
+            const totalExits = expenses.reduce((sum, expense) => {
+                const amount = parseFloat(expense.amount);
+                return sum + (isNaN(amount) ? 0 : amount);
+            }, 0);
+
+            const totalSavings = savings.reduce((sum, saving) => {
+                const amount = parseFloat(saving.amount);
+                return sum + (isNaN(amount) ? 0 : amount);
+            }, 0);
+
+            // Calculate the sum of reserved amounts for future expenses
+            const totalReservedFutureExpenses = futureExpenses.reduce((sum, expense) => {
+                const reservedAmount = parseFloat(expense.reservedAmount);
+                return sum + (isNaN(reservedAmount) ? 0 : reservedAmount);
+            }, 0);
+
+            // Calculate monthly sums with validation
+            const monthlyDeposits = deposits
+                .filter(deposit => {
+                    const depositDate = new Date(deposit.date);
+                    return depositDate.getMonth() + 1 === currentMonth && depositDate.getFullYear() === currentYear;
+                })
+                .reduce((sum, deposit) => {
+                    const amount = parseFloat(deposit.amount);
+                    return sum + (isNaN(amount) ? 0 : amount);
+                }, 0);
+
+            const monthlyExits = expenses
+                .filter(expense => {
+                    const expenseDate = new Date(expense.date);
+                    return expenseDate.getMonth() + 1 === currentMonth && expenseDate.getFullYear() === currentYear;
+                })
+                .reduce((sum, expense) => {
+                    const amount = parseFloat(expense.amount);
+                    return sum + (isNaN(amount) ? 0 : amount);
+                }, 0);
+
+            // Calculate available monthly
+            const availableMonthly = (totalDeposits - totalExits - totalSavings - totalReservedFutureExpenses).toFixed(2);
+
+            // Update the DOM with calculated values
+            document.getElementById('totalDeposits').textContent = totalDeposits.toFixed(2);
+            document.getElementById('totalExits').textContent = totalExits.toFixed(2);
+            document.getElementById('monthlyDeposits').textContent = monthlyDeposits.toFixed(2);
+            document.getElementById('monthlyExits').textContent = monthlyExits.toFixed(2);
+            document.getElementById('totalReservedFutureExpenses').textContent = totalReservedFutureExpenses.toFixed(2);
+            document.getElementById('totalSavings').textContent = totalSavings.toFixed(2);
+            document.getElementById('availableMonthly').textContent = availableMonthly;
+        }
+
+        // Calculate financial reports when the page loads
+        document.addEventListener('DOMContentLoaded', calculateFinancialReports);
+    </script>
+
+</body>
+</html>

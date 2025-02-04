@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Export and Import</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        select, button, input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .import-section {
+            margin-top: 20px;
+            border-top: 1px solid #ccc;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Data Export and Import</h1>
+
+    <div class="container">
+        <label for="tableSelect">Select Table:</label>
+        <select id="tableSelect">
+            <option value="deposits">Deposits</option>
+            <option value="expenses">Expenses</option>
+            <option value="savings">Savings</option>
+            <option value="all">All Tables</option>
+        </select>
+
+        <label for="formatSelect">Select Format:</label>
+        <select id="formatSelect">
+            <option value="sql">SQL</option>
+            <option value="json">JSON</option>
+            <option value="csv">CSV</option>
+        </select>
+
+        <button onclick="exportData()">Export Data</button>
+
+        <div class="import-section">
+            <label for="fileInput">Import Data:</label>
+            <input type="file" id="fileInput" accept=".json,.sql,.csv">
+            <button onclick="importData()">Import Data</button>
+        </div>
+    </div>
+
+    <script>
+        // Function to export data
+        function exportData() {
+            const table = document.getElementById('tableSelect').value;
+            const format = document.getElementById('formatSelect').value;
+
+            let data;
+
+            if (table === 'all') {
+                // Combine data from all tables
+                const deposits = JSON.parse(localStorage.getItem('deposits')) || [];
+                const expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+                const savings = JSON.parse(localStorage.getItem('savings')) || [];
+                data = { deposits, expenses, savings };
+            } else {
+                // Retrieve data from the selected table
+                data = JSON.parse(localStorage.getItem(table)) || [];
+            }
+
+            if ((table !== 'all' && data.length === 0) || (table === 'all' && Object.values(data).every(arr => arr.length === 0))) {
+                alert(`No data found in the selected table(s).`);
+                return;
+            }
+
+            let exportedData;
+
+            switch (format) {
+                case 'sql':
+                    exportedData = generateSQL(data, table);
+                    break;
+                case 'json':
+                    exportedData = JSON.stringify(data, null, 2);
+                    break;
+                case 'csv':
+                    exportedData = generateCSV(data, table);
+                    break;
+                default:
+                    alert('Invalid format selected.');
+                    return;
+            }
+
+            // Download the exported data
+            downloadFile(exportedData, `${table === 'all' ? 'all_tables' : table}_data.${format}`);
+        }
+
+        // Function to generate SQL
+        function generateSQL(data, table) {
+            if (table === 'all') {
+                let sql = '';
+                for (const [tableName, records] of Object.entries(data)) {
+                    if (records.length > 0) {
+                        const columns = Object.keys(records[0]).join(', ');
+                        const values = records.map(record => {
+                            const rowValues = Object.values(record).map(value => {
+                                if (typeof value === 'string') {
+                                    return `'${value.replace(/'/g, "''")}'`; // Escape single quotes
+                                }
+                                return value;
+                            }).join(', ');
+                            return `(${rowValues})`;
+                        }).join(',\n');
+                        sql += `INSERT INTO ${tableName} (${columns}) VALUES\n${values};\n\n`;
+                    }
+                }
+                return sql;
+            } else {
+                const columns = Object.keys(data[0]).join(', ');
+                const values = data.map(record => {
+                    const rowValues = Object.values(record).map(value => {
+                        if (typeof value === 'string') {
+                            return `'${value.replace(/'/g, "''")}'`; // Escape single quotes
+                        }
+                        return value;
+                    }).join(', ');
+                    return `(${rowValues})`;
+                }).join(',\n');
+                return `INSERT INTO ${table} (${columns}) VALUES\n${values};`;
+            }
+        }
+
+        // Function to generate CSV
+        function generateCSV(data, table) {
+            if (table === 'all') {
+                let csv = '';
+                for (const [tableName, records] of Object.entries(data)) {
+                    if (records.length > 0) {
+                        const headers = Object.keys(records[0]).join(',');
+                        const rows = records.map(record => {
+                            return Object.values(record).map(value => {
+                                if (typeof value === 'string') {
+                                    return `"${value.replace(/"/g, '""')}"`; // Escape double quotes
+                                }
+                                return value;
+                            }).join(',');
+                        }).join('\n');
+                        csv += `${tableName}\n${headers}\n${rows}\n\n`;
+                    }
+                }
+                return csv;
+            } else {
+                const headers = Object.keys(data[0]).join(',');
+                const rows = data.map(record => {
+                    return Object.values(record).map(value => {
+                        if (typeof value === 'string') {
+                            return `"${value.replace(/"/g, '""')}"`; // Escape double quotes
+                        }
+                        return value;
+                    }).join(',');
+                }).join('\n');
+                return `${headers}\n${rows}`;
+            }
+        }
+
+        // Function to download the file
+        function downloadFile(data, filename) {
+            const blob = new Blob([data], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Function to import data
+        function importData() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert('Please select a file to import.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const fileContent = event.target.result;
+                const fileExtension = file.name.split('.').pop().toLowerCase();
+
+                try {
+                    let data;
+                    switch (fileExtension) {
+                        case 'json':
+                            data = JSON.parse(fileContent);
+                            break;
+                        case 'sql':
+                            data = parseSQL(fileContent);
+                            break;
+                        case 'csv':
+                            data = parseCSV(fileContent);
+                            break;
+                        default:
+                            alert('Unsupported file format.');
+                            return;
+                    }
+
+                    // Save data to localStorage
+                    if (Array.isArray(data)) {
+                        // Single table data
+                        const table = document.getElementById('tableSelect').value;
+                        if (table === 'all') {
+                            alert('Please select a specific table for importing single-table data.');
+                            return;
+                        }
+                        localStorage.setItem(table, JSON.stringify(data));
+                    } else if (typeof data === 'object' && data.deposits && data.expenses && data.savings) {
+                        // All tables data
+                        localStorage.setItem('deposits', JSON.stringify(data.deposits));
+                        localStorage.setItem('expenses', JSON.stringify(data.expenses));
+                        localStorage.setItem('savings', JSON.stringify(data.savings));
+                    } else {
+                        alert('Invalid data format in the file.');
+                        return;
+                    }
+
+                    alert('Data imported successfully!');
+                } catch (error) {
+                    alert('Error parsing the file. Please check the file format and content.');
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Function to parse SQL data
+        function parseSQL(sql) {
+            // This is a basic SQL parser for INSERT statements
+            const insertRegex = /INSERT INTO (\w+) \((.*?)\) VALUES \((.*?)\);/g;
+            const data = { deposits: [], expenses: [], savings: [] };
+            let match;
+
+            while ((match = insertRegex.exec(sql)) !== null) {
+                const table = match[1];
+                const columns = match[2].split(',').map(col => col.trim());
+                const values = match[3].split(',').map(val => val.trim().replace(/^'|'$/g, ''));
+
+                if (data[table]) {
+                    const record = {};
+                    columns.forEach((col, index) => {
+                        record[col] = values[index];
+                    });
+                    data[table].push(record);
+                }
+            }
+
+            return data;
+        }
+
+        // Function to parse CSV data
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const data = { deposits: [], expenses: [], savings: [] };
+            let currentTable = null;
+
+            lines.forEach(line => {
+                if (line.trim() === '') return;
+
+                if (['deposits', 'expenses', 'savings'].includes(line.trim().toLowerCase())) {
+                    currentTable = line.trim().toLowerCase();
+                } else if (currentTable) {
+                    const headers = data[currentTable].length === 0 ? line.split(',') : null;
+                    if (headers) {
+                        data[currentTable].headers = headers;
+                    } else {
+                        const values = line.split(',');
+                        const record = {};
+                        values.forEach((value, index) => {
+                            record[data[currentTable].headers[index]] = value.replace(/^"|"$/g, '');
+                        });
+                        data[currentTable].push(record);
+                    }
+                }
+            });
+
+            return data;
+        }
+    </script>
+
+</body>
+</html>

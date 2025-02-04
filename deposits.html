@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deposits</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        input, select {
+            margin-bottom: 10px;
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        table {
+            width: 80%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .search-filters {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .action-buttons button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        .edit-btn {
+            background-color: #ffc107;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Deposits</h1>
+
+    <!-- Input Form -->
+    <form id="depositForm">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required>
+
+        <label for="amount">Amount:</label>
+        <input type="number" id="amount" name="amount" required>
+
+        <label for="date">Date:</label>
+        <input type="date" id="date" name="date" required>
+
+        <label for="description">Description:</label>
+        <input type="text" id="description" name="description">
+
+        <label for="type">Type:</label>
+        <select id="type" name="type" required>
+            <option value="work-income">Work Income</option>
+            <option value="gift">Gift</option>
+            <option value="other">Other</option>
+        </select>
+
+        <button type="submit" id="submitBtn">Add Deposit</button>
+    </form>
+
+    <!-- Search Filters -->
+    <div class="search-filters">
+        <label for="searchName">Search by Name:</label>
+        <input type="text" id="searchName" placeholder="Enter name">
+
+        <label for="searchAmount">Search by Amount Range:</label>
+        <input type="number" id="minAmount" placeholder="Min Amount">
+        <input type="number" id="maxAmount" placeholder="Max Amount">
+
+        <label for="searchDateRange">Search by Date Range:</label>
+        <input type="date" id="startDate" placeholder="Start Date">
+        <input type="date" id="endDate" placeholder="End Date">
+
+        <button onclick="filterTable()">Search</button>
+    </div>
+
+    <!-- Table to Display Records -->
+    <table id="depositsTable">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Type</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be added here dynamically -->
+        </tbody>
+    </table>
+
+    <script>
+        let deposits = JSON.parse(localStorage.getItem('deposits')) || [];
+        let editIndex = null; // Track the index of the deposit being edited
+
+        // Load saved deposits from localStorage when the page loads
+        document.addEventListener('DOMContentLoaded', function () {
+            loadDeposits();
+        });
+
+        // Function to load deposits from localStorage
+        function loadDeposits() {
+            const tbody = document.getElementById('depositsTable').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = ''; // Clear existing rows
+
+            deposits.forEach((deposit, index) => {
+                const newRow = document.createElement('tr');
+
+                const nameCell = document.createElement('td');
+                nameCell.textContent = deposit.name;
+                newRow.appendChild(nameCell);
+
+                const amountCell = document.createElement('td');
+                amountCell.textContent = deposit.amount;
+                newRow.appendChild(amountCell);
+
+                const dateCell = document.createElement('td');
+                dateCell.textContent = deposit.date;
+                newRow.appendChild(dateCell);
+
+                const descriptionCell = document.createElement('td');
+                descriptionCell.textContent = deposit.description;
+                newRow.appendChild(descriptionCell);
+
+                const typeCell = document.createElement('td');
+                typeCell.textContent = deposit.type;
+                newRow.appendChild(typeCell);
+
+                const actionCell = document.createElement('td');
+                actionCell.className = 'action-buttons';
+                const editButton = document.createElement('button');
+                editButton.textContent = 'Edit';
+                editButton.className = 'edit-btn';
+                editButton.onclick = () => editDeposit(index);
+                actionCell.appendChild(editButton);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.className = 'delete-btn';
+                deleteButton.onclick = () => deleteDeposit(index);
+                actionCell.appendChild(deleteButton);
+
+                newRow.appendChild(actionCell);
+                tbody.appendChild(newRow);
+            });
+        }
+
+        // Function to save deposits to localStorage
+        function saveDeposits() {
+            localStorage.setItem('deposits', JSON.stringify(deposits));
+        }
+
+        // Handle form submission
+        document.getElementById('depositForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the form from submitting the traditional way
+
+            // Get form values
+            const name = document.getElementById('name').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const date = document.getElementById('date').value;
+            const description = document.getElementById('description').value;
+            const type = document.getElementById('type').value;
+
+            // Create a deposit object
+            const deposit = { name, amount, date, description, type };
+
+            if (editIndex !== null) {
+                // Update existing deposit
+                deposits[editIndex] = deposit;
+                editIndex = null; // Reset edit index
+                document.getElementById('submitBtn').textContent = 'Add Deposit';
+            } else {
+                // Add new deposit
+                deposits.push(deposit);
+
+                // If the deposit is a work income, update reservedAmount in Future Expenses
+                if (type === 'work-income') {
+                    updateReservedAmount(amount);
+                }
+            }
+
+            // Save deposits to localStorage
+            saveDeposits();
+
+            // Reload the table
+            loadDeposits();
+
+            // Clear the form fields
+            document.getElementById('depositForm').reset();
+        });
+
+        // Function to edit a deposit
+        function editDeposit(index) {
+            const deposit = deposits[index];
+            document.getElementById('name').value = deposit.name;
+            document.getElementById('amount').value = deposit.amount;
+            document.getElementById('date').value = deposit.date;
+            document.getElementById('description').value = deposit.description;
+            document.getElementById('type').value = deposit.type;
+            editIndex = index; // Set the edit index
+            document.getElementById('submitBtn').textContent = 'Update Deposit';
+        }
+
+        // Function to delete a deposit
+        function deleteDeposit(index) {
+            deposits.splice(index, 1); // Remove the deposit from the array
+            saveDeposits(); // Save the updated array to localStorage
+            loadDeposits(); // Reload the table
+        }
+
+        // Function to filter the table based on search criteria
+        function filterTable() {
+            const searchName = document.getElementById('searchName').value.toLowerCase();
+            const minAmount = parseFloat(document.getElementById('minAmount').value) || -Infinity;
+            const maxAmount = parseFloat(document.getElementById('maxAmount').value) || Infinity;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            const rows = document.getElementById('depositsTable').getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+            for (let row of rows) {
+                const name = row.getElementsByTagName('td')[0].textContent.toLowerCase();
+                const amount = parseFloat(row.getElementsByTagName('td')[1].textContent);
+                const date = row.getElementsByTagName('td')[2].textContent;
+
+                const nameMatch = name.includes(searchName);
+                const amountMatch = amount >= minAmount && amount <= maxAmount;
+                const dateMatch = (!startDate || date >= startDate) && (!endDate || date <= endDate);
+
+                if (nameMatch && amountMatch && dateMatch) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        }
+
+        // Function to update reservedAmount in Future Expenses
+        function updateReservedAmount(depositAmount) {
+            let futureExpenses = JSON.parse(localStorage.getItem('futureExpenses')) || [];
+            futureExpenses = futureExpenses.map(expense => {
+                if (expense.recurrent === 'yes') {
+                    expense.reservedAmount = (parseFloat(expense.reservedAmount || 0) + (depositAmount / 12)).toFixed(2);
+                }
+                return expense;
+            });
+            localStorage.setItem('futureExpenses', JSON.stringify(futureExpenses));
+        }
+    </script>
+
+</body>
+</html>
