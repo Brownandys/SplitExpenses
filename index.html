@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Splitter</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Expense Splitter</h1>
+
+    <!-- Step 1: Enter number of people -->
+    <div id="step1">
+      <label for="numPeople">Number of People:</label>
+      <input type="number" id="numPeople" min="1">
+      <button onclick="addNameFields()">Next</button>
+    </div>
+
+    <!-- Step 2: Enter names -->
+    <div id="step2" style="display: none;">
+      <h2>Enter Names</h2>
+      <div id="nameFields"></div>
+      <button onclick="addExpenseFields()">Next</button>
+    </div>
+
+    <!-- Step 3: Enter expenses -->
+    <div id="step3" style="display: none;">
+      <h2>Enter Expenses</h2>
+      <div id="expenseFields"></div>
+      <button onclick="calculateExpenses()">Calculate</button>
+    </div>
+
+    <!-- Step 4: Show results -->
+    <div id="step4" style="display: none;">
+      <h2>Results</h2>
+      <div id="results"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
